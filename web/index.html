@@ -505,9 +505,13 @@
       </div>
       <div class="modal-body">
         <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">
-          To sync your bookmarks and likes, enter your Twitter <strong>Bearer Token</strong>.
-          <a href="https://developer.x.com/en/portal/dashboard" target="_blank"
-            style="color: var(--primary); text-decoration: underline;">Get one here</a>.
+          To sync your <strong>private bookmarks</strong>, you need a <strong>User Access Token</strong> (not just an
+          App Bearer Token).
+          <br><br>
+          1. Go to <a href="https://developer.x.com/en/portal/dashboard" target="_blank"
+            style="color: var(--primary); text-decoration: underline;">Developer Portal</a><br>
+          2. Keys and Tokens -> Authentication Tokens -> Generate<br>
+          3. Ensure scopes include: <code>tweet.read</code>, <code>users.read</code>, <code>bookmark.read</code>
         </p>
         <div class="form-group">
           <label for="twitter-token-input">Bearer Token</label>

@@ -92,11 +92,15 @@ serve(async (req) => {
         )
 
     } catch (error) {
+        console.error('Keys:', {
+            hasUrl: !!Deno.env.get('SUPABASE_URL'),
+            hasServiceKey: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+        });
         console.error('Error:', error);
         return new Response(
             JSON.stringify({ error: error.message }),
             {
-                status: 400,
+                status: 200, // Return 200 so client can read the error message
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             }
         )
