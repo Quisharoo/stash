@@ -57,6 +57,7 @@
 [data-theme="dark"] .view-controls select {
   background: var(--bg-secondary);
   color: var(--text);
+  border-color: var(--border);
 }
 
 [data-theme="dark"] .save-card-highlight {
@@ -493,9 +494,17 @@ select {
   padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: white;
+  background: var(--bg);
   font-size: 14px;
   color: var(--text-secondary);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.view-controls select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 /* Saves Grid */
@@ -1028,6 +1037,27 @@ select {
 
   .content {
     padding: 20px 16px;
+  }
+
+  .content-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .content-header h2 {
+    font-size: 24px;
+  }
+
+  .view-controls {
+    width: 100%;
+  }
+
+  .view-controls select {
+    width: 100%;
+    height: 44px;
+    padding: 0 12px;
   }
 
   .saves-grid {
