@@ -12,66 +12,74 @@ serve(async (req) => {
     }
 
     try {
-        const { twitterToken, userId, syncType = 'bookmarks' } = await req.json()
+        const { twitterToken, userId, syncType = 'bookmarks', sourceType, tweets: importedTweets } = await req.json()
 
-        let token = twitterToken;
+        if (!userId) throw new Error('User ID is required');
 
-        // 3. Initialize Supabase Client
-        // We initialize it early to fetch tokens if needed
         const supabase = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         )
 
-        if (!token) {
-            // Try fetching from DB
-            const { data: interaction, error } = await supabase
-                .from('integrations')
-                .select('access_token')
-                .eq('user_id', userId)
-                .eq('provider', 'twitter')
-                .single();
+        let tweets = [];
+        let includes = { users: [] };
 
-            if (error || !interaction) {
-                throw new Error('No tokens found. Please sign in again.');
+        if (sourceType === 'import_json') {
+            console.log(`Starting Twitter JSON import for user ${userId}...`);
+            tweets = importedTweets || [];
+            // bird output is usually a flat array of tweet objects.
+            // Some might have 'author_id' and we might not have the user object if 'includes' isn't passed.
+            // We'll do our best with what we have.
+        } else {
+            // ... existing API logic ...
+            let token = twitterToken;
+            if (!token) {
+                // Try fetching from DB
+                const { data: interaction, error } = await supabase
+                    .from('integrations')
+                    .select('access_token')
+                    .eq('user_id', userId)
+                    .eq('provider', 'twitter')
+                    .single();
+
+                if (error || !interaction) {
+                    throw new Error('No tokens found. Please sign in again.');
+                }
+                token = interaction.access_token;
             }
-            token = interaction.access_token;
+
+            console.log(`Starting Twitter OAuth 2.0 sync (${syncType}) for user ${userId}...`);
+
+            // 1. Get Twitter User ID (Me)
+            const meUrl = 'https://api.twitter.com/2/users/me';
+            const userResponse = await fetch(meUrl, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!userResponse.ok) {
+                const error = await userResponse.json();
+                throw new Error(`Twitter Auth Failed: ${JSON.stringify(error)}`);
+            }
+
+            const { data: twitterUser } = await userResponse.json();
+            const twitterId = twitterUser.id;
+
+            // 2. Fetch Bookmarks
+            let endpoint = `https://api.twitter.com/2/users/${twitterId}/bookmarks?tweet.fields=created_at,entities,author_id&expansions=author_id&user.fields=name,username,profile_image_url`;
+
+            const tweetsResponse = await fetch(endpoint, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!tweetsResponse.ok) {
+                const error = await tweetsResponse.json();
+                throw new Error(`Failed to fetch tweets: ${JSON.stringify(error)}`);
+            }
+
+            const tweetsData = await tweetsResponse.json();
+            tweets = tweetsData.data || [];
+            includes = tweetsData.includes || { users: [] };
         }
-
-        if (!userId) throw new Error('User ID is required');
-
-        console.log(`Starting Twitter OAuth 2.0 sync (${syncType}) for user ${userId}...`);
-
-        // 1. Get Twitter User ID (Me)
-        const meUrl = 'https://api.twitter.com/2/users/me';
-        const userResponse = await fetch(meUrl, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (!userResponse.ok) {
-            const error = await userResponse.json();
-            throw new Error(`Twitter Auth Failed: ${JSON.stringify(error)}`);
-        }
-
-        const { data: twitterUser } = await userResponse.json();
-        const twitterId = twitterUser.id;
-
-        // 2. Fetch Bookmarks
-        // Note: OAuth 2.0 User Context requires scopes: tweet.read, users.read, bookmark.read
-        let endpoint = `https://api.twitter.com/2/users/${twitterId}/bookmarks?tweet.fields=created_at,entities,author_id&expansions=author_id&user.fields=name,username,profile_image_url`;
-
-        const tweetsResponse = await fetch(endpoint, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (!tweetsResponse.ok) {
-            const error = await tweetsResponse.json();
-            throw new Error(`Failed to fetch tweets: ${JSON.stringify(error)}`);
-        }
-
-        const tweetsData = await tweetsResponse.json();
-        const tweets = tweetsData.data || [];
-        const includes = tweetsData.includes || { users: [] };
 
         // 4. Map and Upsert Tweets
         const saves = tweets.map((tweet: any) => {

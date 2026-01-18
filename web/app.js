@@ -247,7 +247,7 @@ class StashApp {
       }
     });
 
-    // Twitter Sync
+    // Twitter Import
     document.getElementById('twitter-sync-btn').addEventListener('click', () => {
       this.showTwitterModal();
     });
@@ -262,20 +262,34 @@ class StashApp {
     document.getElementById('twitter-cancel-btn').addEventListener('click', () => {
       this.hideTwitterModal();
     });
-    const loginBtn = document.getElementById('twitter-login-btn');
-    if (loginBtn) {
-      loginBtn.addEventListener('click', () => {
-        this.startTwitterAuth();
-      });
-    }
 
-    // Check for twitter Auth code
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    if (code) {
-      window.history.replaceState({}, document.title, "/");
-      this.exchangeTwitterCode(code);
-    }
+    const twitterDropzone = document.getElementById('twitter-dropzone');
+    const twitterFileInput = document.getElementById('twitter-file-input');
+
+    twitterDropzone.addEventListener('click', () => {
+      twitterFileInput.click();
+    });
+
+    twitterDropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      twitterDropzone.classList.add('dragover');
+    });
+    twitterDropzone.addEventListener('dragleave', () => {
+      twitterDropzone.classList.remove('dragover');
+    });
+    twitterDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      twitterDropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) {
+        this.handleTwitterFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    twitterFileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        this.handleTwitterFile(e.target.files[0]);
+      }
+    });
 
     // Drag and drop copies for kindle
     kindleDropzone.addEventListener('dragover', (e) => {
@@ -1795,119 +1809,54 @@ class StashApp {
     document.getElementById('twitter-modal').classList.add('hidden');
   }
 
-  async exchangeTwitterCode(code) {
-    this.showTwitterModal();
+  async handleTwitterFile(file) {
     const status = document.getElementById('twitter-sync-status');
-    const loginBtn = document.getElementById('twitter-login-btn');
-    if (loginBtn) loginBtn.style.display = 'none';
-
-    status.textContent = 'Completing sign in...';
-    status.classList.remove('hidden');
-
-    try {
-      const { data, error } = await this.supabase.functions.invoke('auth-twitter', {
-        body: {
-          action: 'exchange_token',
-          code: code,
-          redirectUrl: window.location.origin, // e.g. https://stash-psi-sand.vercel.app
-          userId: this.user.id
-        }
-      });
-
-      if (error) throw error;
-
-      status.textContent = 'Sign in successful. Starting sync...';
-
-      // Give it a moment then sync
-      setTimeout(() => {
-        this.syncTwitter();
-      }, 1000);
-
-    } catch (err) {
-      console.error('Exchange error:', err);
-      status.textContent = 'Sign in failed: ' + (err.message || 'Unknown error');
-      status.className = 'status-message error';
-      if (loginBtn) loginBtn.style.display = 'inline-flex';
-    }
-  }
-
-  async startTwitterAuth() {
-    const status = document.getElementById('twitter-sync-status');
-    status.textContent = 'Redirecting to X...';
-    status.classList.remove('hidden');
-
-    try {
-      const { data, error } = await this.supabase.functions.invoke('auth-twitter', {
-        body: { action: 'start_auth', redirectUrl: window.location.origin }
-      });
-      if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (err) {
-      console.error('Auth error:', err);
-      status.textContent = 'Failed to start auth: ' + err.message;
-      status.className = 'status-message error';
-    }
-  }
-
-  async syncTwitter() {
-    // If not triggered by auto-load, show modal first
-    if (document.getElementById('twitter-modal').classList.contains('hidden')) {
-      this.showTwitterModal();
-    }
-
-    const status = document.getElementById('twitter-sync-status');
-    // Hide login button while syncing
-    const loginBtn = document.getElementById('twitter-login-btn');
-    if (loginBtn) loginBtn.style.display = 'none';
-
-    status.textContent = 'Syncing bookmarks...';
+    status.textContent = 'Reading file...';
     status.className = 'status-message';
     status.classList.remove('hidden');
 
-    try {
-      const { data, error: fnError } = await this.supabase.functions.invoke('sync-twitter', {
-        body: {
-          userId: this.user.id,
-          syncType: 'bookmarks'
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      try {
+        const tweets = JSON.parse(e.target.result);
+        if (!Array.isArray(tweets)) {
+          throw new Error('Invalid JSON format. Expected an array of tweets.');
         }
-      });
 
-      if (fnError) throw fnError;
-      if (data.error) {
-        if (data.error.includes('No tokens found')) {
-          status.textContent = 'Please sign in first.';
-          if (loginBtn) loginBtn.style.display = 'inline-flex';
-          return;
+        status.textContent = `Found ${tweets.length} bookmarks. syncing...`;
+
+        // Send to backend
+        const { data, error } = await this.supabase.functions.invoke('sync-twitter', {
+          body: {
+            userId: this.user.id,
+            sourceType: 'import_json',
+            tweets: tweets
+          }
+        });
+
+        if (error) throw error;
+        if (data.error) throw new Error(data.error);
+
+        status.textContent = `Success! Imported ${data.count} tweets.`;
+        status.className = 'status-message success';
+
+        if (this.currentView === 'twitter') {
+          this.loadSaves();
         }
-        throw new Error(data.error);
+
+        setTimeout(() => {
+          this.hideTwitterModal();
+        }, 2000);
+
+      } catch (err) {
+        console.error('Import error:', err);
+        status.textContent = 'Import failed: ' + (err.message || 'Unknown error');
+        status.className = 'status-message error';
       }
+    };
 
-      status.textContent = `Success! Synced ${data.count} items.`;
-      status.className = 'status-message success';
-
-      // Reload data
-      if (this.currentView === 'twitter') {
-        this.loadSaves();
-      }
-
-      setTimeout(() => {
-        this.hideTwitterModal();
-        if (loginBtn) loginBtn.style.display = 'inline-flex';
-        status.textContent = '';
-      }, 2000);
-
-    } catch (err) {
-      console.error('Twitter sync error:', err);
-      let msg = err.message || 'Unknown error';
-      if (msg.includes('CreditsDepleted') || msg.includes('does not have any credits')) {
-        msg = 'Your Twitter API plan has no credits left (Free Tier limits).';
-      }
-      status.textContent = `Sync failed: ${msg}`;
-      status.className = 'status-message error';
-      if (loginBtn) loginBtn.style.display = 'inline-flex';
-    }
+    reader.readAsText(file);
   }
 }
 
