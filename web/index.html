@@ -505,34 +505,19 @@
       </div>
       <div class="modal-body">
         <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">
-          To sync private bookmarks, we need <strong>OAuth 1.0a</strong> credentials (the only way to access your own
-          data without a login server).
+          To sync your <strong>private bookmarks</strong>, you need a <strong>User Access Token</strong> (OAuth 2.0).
+          Access Tokens from the dashboard are for testing only and expire quickly, but they work for a one-off sync.
           <br><br>
-          1. Go to <a href="https://developer.x.com/en/portal/dashboard" target="_blank"
-            style="color: var(--primary); text-decoration: underline;">Developer Portal</a><br>
-          2. Create a Project/App -> <strong>Keys and Tokens</strong><br>
-          3. Generate <strong>Consumer Keys</strong> (API Key & Secret)<br>
-          4. Generate <strong>Authentication Tokens</strong> (Access Token & Secret)
+          For a permanent link, we would need to implement a "Sign in with Twitter" button. For now, use a token from
+          the
+          <a href="https://developer.twitter.com/en/portal/dashboard" target="_blank"
+            style="color: var(--primary); text-decoration: underline;">Developer Portal</a>
+          or via tools like Postman/Insomnia using OAuth 2.0.
         </p>
-        <div class="form-group" style="margin-bottom: 12px;">
-          <label for="tw-api-key">API Key (Consumer Key)</label>
-          <input type="password" id="tw-api-key"
-            style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text);">
-        </div>
-        <div class="form-group" style="margin-bottom: 12px;">
-          <label for="tw-api-secret">API Secret (Consumer Secret)</label>
-          <input type="password" id="tw-api-secret"
-            style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text);">
-        </div>
-        <div class="form-group" style="margin-bottom: 12px;">
-          <label for="tw-access-token">Access Token</label>
-          <input type="password" id="tw-access-token"
-            style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text);">
-        </div>
         <div class="form-group">
-          <label for="tw-access-secret">Access Token Secret</label>
-          <input type="password" id="tw-access-secret"
-            style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text);">
+          <label for="twitter-token-input">User Access Token (OAuth 2.0)</label>
+          <input type="password" id="twitter-token-input" placeholder="ey..."
+            style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text);">
         </div>
         <div id="twitter-sync-status" class="status-message hidden" style="margin-top: 12px; font-size: 14px;"></div>
       </div>

@@ -267,11 +267,10 @@ class StashApp {
     });
 
     // Load saved twitter tokens if exist
-    ['tw_api_key', 'tw_api_secret', 'tw_access_token', 'tw_access_secret'].forEach(key => {
-      const val = localStorage.getItem(key);
-      const el = document.getElementById(key.replace(/_/g, '-'));
-      if (val && el) el.value = val;
-    });
+    const savedToken = localStorage.getItem('twitter_bearer_token');
+    if (savedToken) {
+      document.getElementById('twitter-token-input').value = savedToken;
+    }
 
     // Drag and drop copies for kindle
     kindleDropzone.addEventListener('dragover', (e) => {
@@ -1792,26 +1791,19 @@ class StashApp {
   }
 
   async syncTwitter() {
-    const apiKey = document.getElementById('tw-api-key').value;
-    const apiSecret = document.getElementById('tw-api-secret').value;
-    const accessToken = document.getElementById('tw-access-token').value;
-    const accessSecret = document.getElementById('tw-access-secret').value;
-
+    const token = document.getElementById('twitter-token-input').value;
     const status = document.getElementById('twitter-sync-status');
     const syncBtn = document.getElementById('twitter-save-btn');
 
-    if (!apiKey || !apiSecret || !accessToken || !accessSecret) {
-      status.textContent = 'Please fill in all 4 credentials';
+    if (!token) {
+      status.textContent = 'Please enter a Twitter User Access Token';
       status.className = 'status-message error';
       status.classList.remove('hidden');
       return;
     }
 
-    // Save tokens
-    localStorage.setItem('tw_api_key', apiKey);
-    localStorage.setItem('tw_api_secret', apiSecret);
-    localStorage.setItem('tw_access_token', accessToken);
-    localStorage.setItem('tw_access_secret', accessSecret);
+    // Save token for next time
+    localStorage.setItem('twitter_bearer_token', token);
 
     syncBtn.disabled = true;
     syncBtn.textContent = 'Syncing...';
@@ -1822,12 +1814,7 @@ class StashApp {
     try {
       const { data, error: fnError } = await this.supabase.functions.invoke('sync-twitter', {
         body: {
-          credentials: {
-            consumerKey: apiKey,
-            consumerSecret: apiSecret,
-            accessToken: accessToken,
-            accessSecret: accessSecret
-          },
+          twitterToken: token,
           userId: this.user.id,
           syncType: 'bookmarks'
         }
