@@ -1,59 +1,69 @@
 # Stash
 
-A simple, self-hosted read-it-later app. Save articles, highlights, and Kindle notes to your own database.
+A beautiful, self-hosted read-it-later "Newsfeed" application. Save articles, highlights, and Kindle notes to your own database.
 
 **Your data. Your server. No subscription.**
 
-## Features
+---
 
-- **Chrome Extension** - Save pages and highlights with one click
-- **Web App** - Access your saves from any device
-- **Kindle Sync** - Import highlights from your Kindle library
-- **Full-Text Search** - Find anything you've saved
-- **Text-to-Speech** - Listen to articles with neural voices (free)
-- **iOS Shortcut** - Save from Safari on iPhone/iPad
-- **Bookmarklet** - Works in any browser
+## 🌟 Quick Start (Zero-Friction Setup)
 
-## Why Stash?
-
-- **Free forever** - Runs on Supabase free tier (500MB, unlimited API calls)
-- **You own your data** - Everything stored in your own database
-- **No account needed** - Single-user mode, no sign-up friction
-- **Works offline** - PWA support for mobile
-- **Open source** - Fork it, modify it, make it yours
-
-## Quick Start
-
-1. **Create a Supabase project** (free) at [supabase.com](https://supabase.com)
-2. **Run the schema** from `supabase/schema.sql`
-3. **Add your credentials** to `extension/config.js` and `web/config.js`
-4. **Load the extension** in Chrome (`chrome://extensions` > Load unpacked)
-5. **Deploy the web app** to Vercel/Netlify (free)
-
-See [SETUP.md](SETUP.md) for detailed instructions.
-
-## Project Structure
-
-```
-stash/
-├── extension/       # Chrome extension
-├── web/            # Web app (PWA)
-├── tts/            # Text-to-speech generator
-├── bookmarklet/    # Universal save bookmarklet
-├── ios-shortcut/   # iOS Shortcut for Safari
-└── supabase/       # Database schema & Edge Functions
+### 1. Simple Cloud Setup (Recommended)
+You can skip all prompts by creating a `.env` file (copy `.env.example`).
+```bash
+cp .env.example .env
+# Open .env and add your SUPABASE_ACCESS_TOKEN and PROJECT_ID
+node deploy.js
+# Choose (C)loud when prompted.
 ```
 
-## Tech Stack
+### 2. Simple Local Setup
+If you have Docker installed, you can run everything locally without even creating a Supabase account:
+```bash
+node deploy.js
+# Choose (L)ocal when prompted.
+```
 
-- **Frontend**: Vanilla JS, HTML, CSS (no framework bloat)
-- **Backend**: Supabase (PostgreSQL + REST API)
-- **Hosting**: Any static host (Vercel, Netlify, GitHub Pages)
+---
 
-## Screenshots
+## 🚀 Hosting & Production Security
 
-*Coming soon*
+### 1. Deploy to Vercel
+I've already created a `vercel.json` for you. To deploy:
+1. Install Vercel CLI: `npm i -g vercel`
+2. Run `vercel` in the root directory.
+3. Follow the CLI prompts to deploy.
+
+### 🔐 Security & Multi-User
+Once hosted on a public domain (like Vercel), Stash automatically turns on the **Login Screen** for security.
+- **Local Development**: Stash skips the login for convenience when running on `localhost`.
+- **Production**: You will need to sign in using the email/password you created in your Supabase Auth dashboard.
+
+### 🛡️ Hardened RLS (Optional)
+If you want to be extremely secure, you can revert the "relaxed" RLS policies and use strict per-user filters once you have logged in.
+
+---
+
+## 🛠 Features
+- **Newsfeed UI** - A modern, premium grid layout for your saved content.
+- **Add URLs Directly** - Paste any link in the web app to save it.
+- **Server-Side Scraper** - Automatically extracts clean article text.
+- **Chrome Extension** - Save pages and highlights from your browser.
+- **Kindle Sync** - Import highlights from `My Clippings.txt`.
+- **Weekly Digest** - Get a summary of your weekly saves emailed to you.
+
+---
+
+## 📂 Project Structure
+- `web/` - PWA Web App (the Newsfeed).
+- `supabase/` - Database schema and Edge Functions.
+- `extension/` - Chrome extension for saving while browsing.
+- `deploy.js` - Automated setup & deployment script.
+
+## ⚙️ Tech Stack
+- **Frontend**: Vanilla JS, CSS (Modern Premium Design).
+- **Backend**: Supabase (PostgreSQL + Edge Functions).
+- **Hosting**: Vercel (Recommended), Netlify, or self-hosted.
 
 ## License
-
-MIT
+MIT.

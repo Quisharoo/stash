@@ -27,11 +27,39 @@ class StashApp {
     // Load theme preference
     this.loadTheme();
 
-    // Skip auth - go straight to main screen
-    this.showMainScreen();
-    this.loadData();
+    // Check for session
+    const { data: { session } } = await this.supabase.auth.getSession();
+
+    if (session) {
+      this.user = session.user;
+      this.showMainScreen();
+      this.loadData();
+    } else if (CONFIG.USER_ID && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      // Single-user mode for local development
+      this.user = { id: CONFIG.USER_ID };
+      this.showMainScreen();
+      this.loadData();
+    } else {
+      // Show auth screen for hosted versions/production security
+      this.showAuthScreen();
+    }
 
     this.bindEvents();
+
+    // Listen for auth changes
+    this.supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state change:', event, session ? 'User logged in' : 'No user');
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        if (session) {
+          this.user = session.user;
+          this.showMainScreen();
+          this.loadData();
+        }
+      } else if (event === 'SIGNED_OUT') {
+        this.user = null;
+        this.showAuthScreen();
+      }
+    });
   }
 
   // Theme Management
@@ -257,9 +285,28 @@ class StashApp {
       this.saveDigestPreferences();
     });
 
-    // Toggle enabled/disabled state of options
     document.getElementById('digest-enabled').addEventListener('change', () => {
       this.updateDigestOptionsState();
+    });
+
+    // Add URL Modal
+    const addUrlModal = document.getElementById('add-url-modal');
+
+    document.getElementById('add-url-btn').addEventListener('click', () => {
+      this.showAddUrlModal();
+    });
+
+    addUrlModal.querySelector('.modal-overlay').addEventListener('click', () => {
+      this.hideAddUrlModal();
+    });
+    addUrlModal.querySelector('.modal-close-btn').addEventListener('click', () => {
+      this.hideAddUrlModal();
+    });
+    document.getElementById('add-url-cancel-btn').addEventListener('click', () => {
+      this.hideAddUrlModal();
+    });
+    document.getElementById('add-url-save-btn').addEventListener('click', () => {
+      this.saveUrl();
     });
   }
 
@@ -350,10 +397,17 @@ class StashApp {
     const loading = document.getElementById('loading');
     const empty = document.getElementById('empty-state');
 
+    if (!container || !loading || !empty) {
+      console.warn('UI elements not found. Skipping loadSaves.');
+      return;
+    }
+
     loading.classList.remove('hidden');
     container.innerHTML = '';
 
-    const sortValue = document.getElementById('sort-select').value;
+    const sortSelect = document.getElementById('sort-select');
+    if (!sortSelect) return;
+    const sortValue = sortSelect.value;
     const [column, direction] = sortValue.split('.');
 
     let query = this.supabase
@@ -658,22 +712,42 @@ class StashApp {
     });
 
     // Update title
+    const viewTitle = document.getElementById('view-title');
     const titles = {
       all: 'All Saves',
       highlights: 'Highlights',
       articles: 'Articles',
       kindle: 'Kindle Highlights',
       archived: 'Archived',
+      weekly: 'Weekly Review',
       stats: 'Stats',
     };
-    document.getElementById('view-title').textContent = titles[view] || 'Saves';
+    if (viewTitle) {
+      viewTitle.textContent = titles[view] || 'Saves';
+    }
+
+    // Handle visibility
+    const statsView = document.getElementById('stats-view');
+    const savesContainer = document.getElementById('saves-container');
+    const contentHeader = document.querySelector('.content-header');
+    const emptyState = document.getElementById('empty-state');
 
     if (view === 'stats') {
+      if (statsView) statsView.classList.remove('hidden');
+      if (savesContainer) savesContainer.classList.add('hidden');
+      if (contentHeader) contentHeader.classList.add('hidden');
+      if (emptyState) emptyState.classList.add('hidden');
       this.showStats();
-    } else if (view === 'kindle') {
-      this.loadKindleHighlights();
     } else {
-      this.loadSaves();
+      if (statsView) statsView.classList.add('hidden');
+      if (savesContainer) savesContainer.classList.remove('hidden');
+      if (contentHeader) contentHeader.classList.remove('hidden');
+
+      if (view === 'kindle') {
+        this.loadKindleHighlights();
+      } else {
+        this.loadSaves();
+      }
     }
   }
 
@@ -981,18 +1055,13 @@ class StashApp {
       byMonth[month] = (byMonth[month] || 0) + 1;
     });
 
-    const content = document.querySelector('.content');
-    content.innerHTML = `
+    const statsView = document.getElementById('stats-view');
+    statsView.innerHTML = `
       <div class="stats-container">
-        <div class="stats-header">
-          <h2>Your Stats</h2>
-          <button class="btn secondary" onclick="app.setView('all')">← Back</button>
-        </div>
-
         <div class="stats-cards">
           <div class="stat-card">
             <div class="stat-card-value">${totalSaves}</div>
-            <div class="stat-card-label">Total Saves</div>
+            <div class="stat-card-label">Total Items</div>
           </div>
           <div class="stat-card">
             <div class="stat-card-value">${articles}</div>
@@ -1009,12 +1078,12 @@ class StashApp {
         </div>
 
         <div class="stats-section">
-          <h3>Saves by Month</h3>
+          <h3>Activity Trend</h3>
           <div style="display: flex; gap: 24px; flex-wrap: wrap; margin-top: 16px;">
             ${Object.entries(byMonth).slice(-6).map(([month, count]) => `
-              <div>
-                <div style="font-size: 24px; font-weight: 600; color: var(--primary);">${count}</div>
-                <div style="font-size: 13px; color: var(--text-muted);">${month}</div>
+              <div class="trend-item">
+                <div style="font-size: 24px; font-weight: 700; color: var(--primary);">${count}</div>
+                <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">${month}</div>
               </div>
             `).join('')}
           </div>
@@ -1561,6 +1630,102 @@ class StashApp {
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = 'Save Settings';
+    }
+  }
+
+
+  // Add URL Feature
+  showAddUrlModal() {
+    const modal = document.getElementById('add-url-modal');
+    modal.classList.remove('hidden');
+    document.getElementById('url-input').focus();
+    // Reset state
+    document.getElementById('url-input').value = '';
+    const status = document.getElementById('add-url-status');
+    status.classList.add('hidden');
+    status.className = 'status-message hidden';
+  }
+
+  hideAddUrlModal() {
+    document.getElementById('add-url-modal').classList.add('hidden');
+  }
+
+  async saveUrl() {
+    const input = document.getElementById('url-input');
+    const url = input.value.trim();
+    const saveBtn = document.getElementById('add-url-save-btn');
+    const status = document.getElementById('add-url-status');
+
+    if (!url) {
+      status.textContent = 'Please enter a URL';
+      status.className = 'status-message error';
+      status.classList.remove('hidden');
+      return;
+    }
+
+    // Basic URL validation
+    try {
+      new URL(url);
+    } catch (e) {
+      status.textContent = 'Please enter a valid URL (e.g., https://example.com)';
+      status.className = 'status-message error';
+      status.classList.remove('hidden');
+      return;
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    status.textContent = 'Fetching content...';
+    status.className = 'status-message';
+    status.classList.remove('hidden');
+
+    try {
+      // call fetch-url edge function
+      const { data, error: fnError } = await this.supabase.functions.invoke('fetch-url', {
+        body: { url }
+      });
+
+      if (fnError) throw fnError;
+      if (!data) throw new Error('No data returned from fetcher');
+      if (data.error) throw new Error(data.error);
+
+      status.textContent = 'Saving to library...';
+
+      // Insert into saves
+      const { error: insertError } = await this.supabase
+        .from('saves')
+        .insert({
+          user_id: this.user.id,
+          url: data.url,
+          title: data.title || 'Untitled',
+          content: data.content || '',
+          excerpt: data.excerpt || '',
+          site_name: data.siteName,
+          author: data.byline,
+          image_url: null, // Scraper doesn't fetch image yet, but that's ok
+          source: 'manual_url'
+        });
+
+      if (insertError) throw insertError;
+
+      status.textContent = 'Saved!';
+      status.className = 'status-message success';
+
+      // Reload saves
+      await this.loadSaves();
+
+      setTimeout(() => {
+        this.hideAddUrlModal();
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save to Stash';
+      }, 1000);
+
+    } catch (err) {
+      console.error('Save URL error:', err);
+      status.textContent = `Error: ${err.message || 'Failed to save URL'}`;
+      status.className = 'status-message error';
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save to Stash';
     }
   }
 }

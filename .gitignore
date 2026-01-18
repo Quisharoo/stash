@@ -24,3 +24,6 @@ config.local.js
 # Build artifacts
 *.zip
 supabase/.temp/
+# Environment variables
+.env
+.vercel

@@ -1,12 +1,10 @@
 -- Stash: Pocket Replacement Schema
 -- Run this in your Supabase SQL Editor
 
--- Enable UUID extension
-create extension if not exists "uuid-ossp";
 
 -- Folders table
 create table folders (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) on delete cascade not null,
   name text not null,
   color text default '#6366f1',
@@ -16,7 +14,7 @@ create table folders (
 
 -- Saves table (main content)
 create table saves (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) on delete cascade not null,
   folder_id uuid references folders(id) on delete set null,
 
@@ -50,7 +48,7 @@ create table saves (
 
 -- Tags table
 create table tags (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) on delete cascade not null,
   name text not null,
   color text default '#6366f1',
@@ -93,58 +91,12 @@ alter table tags enable row level security;
 alter table folders enable row level security;
 alter table save_tags enable row level security;
 
--- RLS Policies: Users can only access their own data
-create policy "Users can view own saves" on saves
-  for select using (auth.uid() = user_id);
-
-create policy "Users can insert own saves" on saves
-  for insert with check (auth.uid() = user_id);
-
-create policy "Users can update own saves" on saves
-  for update using (auth.uid() = user_id);
-
-create policy "Users can delete own saves" on saves
-  for delete using (auth.uid() = user_id);
-
-create policy "Users can view own tags" on tags
-  for select using (auth.uid() = user_id);
-
-create policy "Users can insert own tags" on tags
-  for insert with check (auth.uid() = user_id);
-
-create policy "Users can update own tags" on tags
-  for update using (auth.uid() = user_id);
-
-create policy "Users can delete own tags" on tags
-  for delete using (auth.uid() = user_id);
-
-create policy "Users can view own folders" on folders
-  for select using (auth.uid() = user_id);
-
-create policy "Users can insert own folders" on folders
-  for insert with check (auth.uid() = user_id);
-
-create policy "Users can update own folders" on folders
-  for update using (auth.uid() = user_id);
-
-create policy "Users can delete own folders" on folders
-  for delete using (auth.uid() = user_id);
-
--- For save_tags, check via the saves table
-create policy "Users can view own save_tags" on save_tags
-  for select using (
-    exists (select 1 from saves where saves.id = save_id and saves.user_id = auth.uid())
-  );
-
-create policy "Users can insert own save_tags" on save_tags
-  for insert with check (
-    exists (select 1 from saves where saves.id = save_id and saves.user_id = auth.uid())
-  );
-
-create policy "Users can delete own save_tags" on save_tags
-  for delete using (
-    exists (select 1 from saves where saves.id = save_id and saves.user_id = auth.uid())
-  );
+-- RLS Policies: Allow all for anon (Single-user mode)
+create policy "Allow all for anon" on saves for all using (true);
+create policy "Allow all for anon" on tags for all using (true);
+create policy "Allow all for anon" on folders for all using (true);
+create policy "Allow all for anon" on save_tags for all using (true);
+create policy "Allow all for anon" on user_preferences for all using (true);
 
 -- Function to update updated_at timestamp
 create or replace function update_updated_at()
@@ -179,7 +131,7 @@ $$ language plpgsql;
 
 -- User preferences table (for digest emails, etc.)
 create table user_preferences (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) on delete cascade not null unique,
 
   -- Email digest settings
