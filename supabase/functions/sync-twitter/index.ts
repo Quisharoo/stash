@@ -14,9 +14,28 @@ serve(async (req) => {
     try {
         const { twitterToken, userId, syncType = 'bookmarks' } = await req.json()
 
-        // Allow token to be passed directly (OAuth 2.0 User Context Key)
-        if (!twitterToken) {
-            throw new Error('Missing Twitter User Access Token');
+        let token = twitterToken;
+
+        // 3. Initialize Supabase Client
+        // We initialize it early to fetch tokens if needed
+        const supabase = createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        )
+
+        if (!token) {
+            // Try fetching from DB
+            const { data: interaction, error } = await supabase
+                .from('integrations')
+                .select('access_token')
+                .eq('user_id', userId)
+                .eq('provider', 'twitter')
+                .single();
+
+            if (error || !interaction) {
+                throw new Error('No tokens found. Please sign in again.');
+            }
+            token = interaction.access_token;
         }
 
         if (!userId) throw new Error('User ID is required');
@@ -53,12 +72,6 @@ serve(async (req) => {
         const tweetsData = await tweetsResponse.json();
         const tweets = tweetsData.data || [];
         const includes = tweetsData.includes || { users: [] };
-
-        // 3. Initialize Supabase Client
-        const supabase = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        )
 
         // 4. Map and Upsert Tweets
         const saves = tweets.map((tweet: any) => {
