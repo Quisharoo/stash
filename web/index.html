@@ -505,18 +505,34 @@
       </div>
       <div class="modal-body">
         <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">
-          To sync your <strong>private bookmarks</strong>, you need a <strong>User Access Token</strong> (not just an
-          App Bearer Token).
+          To sync private bookmarks, we need <strong>OAuth 1.0a</strong> credentials (the only way to access your own
+          data without a login server).
           <br><br>
           1. Go to <a href="https://developer.x.com/en/portal/dashboard" target="_blank"
             style="color: var(--primary); text-decoration: underline;">Developer Portal</a><br>
-          2. Keys and Tokens -> Authentication Tokens -> Generate<br>
-          3. Ensure scopes include: <code>tweet.read</code>, <code>users.read</code>, <code>bookmark.read</code>
+          2. Create a Project/App -> <strong>Keys and Tokens</strong><br>
+          3. Generate <strong>Consumer Keys</strong> (API Key & Secret)<br>
+          4. Generate <strong>Authentication Tokens</strong> (Access Token & Secret)
         </p>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label for="tw-api-key">API Key (Consumer Key)</label>
+          <input type="password" id="tw-api-key"
+            style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text);">
+        </div>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label for="tw-api-secret">API Secret (Consumer Secret)</label>
+          <input type="password" id="tw-api-secret"
+            style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text);">
+        </div>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label for="tw-access-token">Access Token</label>
+          <input type="password" id="tw-access-token"
+            style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text);">
+        </div>
         <div class="form-group">
-          <label for="twitter-token-input">Bearer Token</label>
-          <input type="password" id="twitter-token-input" placeholder="AAAAAAAAAAAAAAAAAAAA..."
-            style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text);">
+          <label for="tw-access-secret">Access Token Secret</label>
+          <input type="password" id="tw-access-secret"
+            style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text);">
         </div>
         <div id="twitter-sync-status" class="status-message hidden" style="margin-top: 12px; font-size: 14px;"></div>
       </div>

@@ -266,11 +266,12 @@ class StashApp {
       this.syncTwitter();
     });
 
-    // Load saved twitter token if exists
-    const savedToken = localStorage.getItem('twitter_bearer_token');
-    if (savedToken) {
-      document.getElementById('twitter-token-input').value = savedToken;
-    }
+    // Load saved twitter tokens if exist
+    ['tw_api_key', 'tw_api_secret', 'tw_access_token', 'tw_access_secret'].forEach(key => {
+      const val = localStorage.getItem(key);
+      const el = document.getElementById(key.replace(/_/g, '-'));
+      if (val && el) el.value = val;
+    });
 
     // Drag and drop copies for kindle
     kindleDropzone.addEventListener('dragover', (e) => {
@@ -1791,19 +1792,26 @@ class StashApp {
   }
 
   async syncTwitter() {
-    const token = document.getElementById('twitter-token-input').value;
+    const apiKey = document.getElementById('tw-api-key').value;
+    const apiSecret = document.getElementById('tw-api-secret').value;
+    const accessToken = document.getElementById('tw-access-token').value;
+    const accessSecret = document.getElementById('tw-access-secret').value;
+
     const status = document.getElementById('twitter-sync-status');
     const syncBtn = document.getElementById('twitter-save-btn');
 
-    if (!token) {
-      status.textContent = 'Please enter a Twitter Bearer Token';
+    if (!apiKey || !apiSecret || !accessToken || !accessSecret) {
+      status.textContent = 'Please fill in all 4 credentials';
       status.className = 'status-message error';
       status.classList.remove('hidden');
       return;
     }
 
-    // Save token for next time
-    localStorage.setItem('twitter_bearer_token', token);
+    // Save tokens
+    localStorage.setItem('tw_api_key', apiKey);
+    localStorage.setItem('tw_api_secret', apiSecret);
+    localStorage.setItem('tw_access_token', accessToken);
+    localStorage.setItem('tw_access_secret', accessSecret);
 
     syncBtn.disabled = true;
     syncBtn.textContent = 'Syncing...';
@@ -1814,7 +1822,12 @@ class StashApp {
     try {
       const { data, error: fnError } = await this.supabase.functions.invoke('sync-twitter', {
         body: {
-          twitterToken: token,
+          credentials: {
+            consumerKey: apiKey,
+            consumerSecret: apiSecret,
+            accessToken: accessToken,
+            accessSecret: accessSecret
+          },
           userId: this.user.id,
           syncType: 'bookmarks'
         }
