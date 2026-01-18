@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import OAuth from 'https://esm.sh/oauth-1.0a'
-import { HmacSha1 } from 'https://deno.land/std@0.168.0/hash/sha1.ts'
+import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -24,22 +23,7 @@ serve(async (req) => {
 
         console.log(`Starting Twitter OAuth 1.0a sync (${syncType}) for user ${userId}...`);
 
-        // 1. Setup OAuth 1.0a helper
-        const oauth = new OAuth({
-            consumer: { key: credentials.consumerKey, secret: credentials.consumerSecret },
-            signature_method: 'HMAC-SHA1',
-            hash_function(base_string, key) {
-                // Deno's crypto.subtle is async, but oauth-1.0a expects sync.
-                // We use a small hack or simply use the provided HmacSha1 from std for sync hashing if needed,
-                // but actually, oauth-1.0a supports a custom hash function that can be whatever.
-                // HOWEVER, the easiest way in Deno without external sync crypto libs is to use a pure JS impl or just handle the signature manually.
-                // Let's use a simplified manual approach if oauth-1.0a fails.
-                // Actually, let's just use the 'crypto-js' or similar if available via esm.sh which is sync.
-                throw new Error("Unavailable"); // We will implement manual signing below to avoid dependency hell
-            },
-        });
-
-        // 2. Fetch User ID (Me)
+        // 1. Fetch User ID (Me)
         const meUrl = 'https://api.twitter.com/2/users/me';
         const headers = await getAuthHeaders(meUrl, 'GET', credentials);
 
@@ -127,9 +111,6 @@ serve(async (req) => {
 
 // --- Helper for OAuth 1.0a Signature ---
 // Using hmac-sha1 from a pure URL or manual implementation to avoid complexity
-import { hmac } from "https://cdnjs.cloudflare.com/ajax/libs/js-sha1/0.6.0/sha1.js";
-// Note: importing from cdnjs directly in Deno might be flaky. Let's use a simpler custom implementation or standard lib.
-import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
 async function getAuthHeaders(url: string, method: string, creds: any) {
     const oauth = {
