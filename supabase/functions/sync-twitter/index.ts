@@ -45,7 +45,7 @@ serve(async (req) => {
         // 1. Get Twitter User ID (Me)
         const meUrl = 'https://api.twitter.com/2/users/me';
         const userResponse = await fetch(meUrl, {
-            headers: { 'Authorization': `Bearer ${twitterToken}` }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (!userResponse.ok) {
@@ -61,7 +61,7 @@ serve(async (req) => {
         let endpoint = `https://api.twitter.com/2/users/${twitterId}/bookmarks?tweet.fields=created_at,entities,author_id&expansions=author_id&user.fields=name,username,profile_image_url`;
 
         const tweetsResponse = await fetch(endpoint, {
-            headers: { 'Authorization': `Bearer ${twitterToken}` }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (!tweetsResponse.ok) {
