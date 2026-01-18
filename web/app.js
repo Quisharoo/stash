@@ -249,7 +249,7 @@ class StashApp {
 
     // Twitter Import
     document.getElementById('twitter-sync-btn').addEventListener('click', () => {
-      this.showTwitterModal();
+      this.tryLocalBridgeSync();
     });
 
     const twitterModal = document.getElementById('twitter-modal');
@@ -1807,6 +1807,50 @@ class StashApp {
 
   hideTwitterModal() {
     document.getElementById('twitter-modal').classList.add('hidden');
+  }
+
+  async tryLocalBridgeSync() {
+    const btn = document.getElementById('twitter-sync-btn');
+    const originalText = btn.innerHTML;
+
+    // Optimistic UI
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" class="spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Connecting...`;
+
+    try {
+      // Try connecting to the local bridge
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), 1000); // 1s timeout to detect if bridge is up
+
+      const checkFn = await fetch('http://localhost:3005/sync', {
+        method: 'OPTIONS',
+        signal: controller.signal
+      });
+      clearTimeout(id);
+
+      if (checkFn.status === 204 || checkFn.status === 200) {
+        // Bridge is up! Run the sync.
+        btn.innerHTML = `Syncing...`;
+
+        const resp = await fetch('http://localhost:3005/sync', { method: 'POST' });
+        const data = await resp.json();
+
+        if (data.success) {
+          btn.innerHTML = `Success!`;
+          setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+          if (this.currentView === 'twitter') this.loadSaves();
+          return; // Done! No need to show modal.
+        } else {
+          throw new Error(data.error);
+        }
+      }
+    } catch (e) {
+      // Bridge failed or not running. Open modal.
+      console.log('Local bridge not detected:', e);
+    }
+
+    // Reset button and show modal fallback
+    btn.innerHTML = originalText;
+    this.showTwitterModal();
   }
 
   async handleTwitterFile(file) {
