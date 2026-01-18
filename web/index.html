@@ -17,9 +17,9 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
     rel="stylesheet">
 
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icons/icon192.png">
+  <!-- PWA (Disabled temporarily to debug TLS error) -->
+  <!-- <link rel="manifest" href="manifest.json"> -->
+  <!-- <link rel="apple-touch-icon" href="icons/icon192.png"> -->
 
   <!-- Styles -->
   <link rel="stylesheet" href="styles.css">
@@ -486,12 +486,12 @@
   <script src="config.js"></script>
   <script src="app.js"></script>
 
-  <!-- Register Service Worker -->
-  <script>
+  <!-- Register Service Worker (Disabled to debug TLS error) -->
+  <!-- <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js');
     }
-  </script>
+  </script> -->
 </body>
 
 </html>

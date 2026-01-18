@@ -425,8 +425,8 @@ select {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 0 24px;
-  height: var(--header-height);
+  padding: env(safe-area-inset-top, 0) 24px 0;
+  height: calc(var(--header-height) + env(safe-area-inset-top, 0));
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -580,6 +580,7 @@ select {
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -590,6 +591,7 @@ select {
   line-height: 1.6;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin-bottom: 16px;
