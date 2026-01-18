@@ -67,13 +67,21 @@ const requestHandler = (req, res) => {
 
 const server = http.createServer(requestHandler);
 
-server.listen(PORT, (err) => {
+server.listen(PORT, async (err) => {
     if (err) {
         return console.log('something bad happened', err);
     }
     console.log(`\n🚀 Local Twitter Bridge is running on port ${PORT}`);
-    console.log(`👉 You can now press "Sync" in the Stash web app!`);
-    console.log(`   (Keep this terminal window open)\n`);
+
+    // Run one sync immediately on start!
+    try {
+        await doSync();
+    } catch (e) {
+        console.error('Initial sync failed:', e.message);
+    }
+
+    console.log(`\n👉 You can keep this running to enable the "Sync" button in the web app.`);
+    console.log(`   (Note: Web button might be blocked by browser security on HTTPS sites. Using this script directly is most reliable.)\n`);
 });
 
 async function doSync() {

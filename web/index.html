@@ -504,10 +504,19 @@
         </button>
       </div>
       <div class="modal-body" style="text-align: center; padding: 40px 20px;">
-        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 24px;">
-          Twitter's API is paid, but you can import bookmarks for free using tools like
-          <a href="https://github.com/steipete/bird" target="_blank"
-            style="color: var(--primary); text-decoration: underline;">steipete/bird</a>.
+        <div
+          style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: left; border: 1px solid var(--border);">
+          <p style="font-weight: 600; margin-bottom: 8px; font-size: 15px;">⚡️ To use 1-Click Sync:</p>
+          <ol style="margin: 0; padding-left: 24px; font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
+            <li>Run <code>node scripts/sync-twitter.js</code> in your terminal.</li>
+            <li>Keep the terminal open.</li>
+            <li>If the button still fails, your browser might be blocking the local connection. In that case, just
+              running the script manually triggers a sync!</li>
+          </ol>
+        </div>
+
+        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">
+          Or manually upload your bookmarks JSON here:
         </p>
 
         <div class="drop-zone" id="twitter-dropzone"
@@ -519,7 +528,7 @@
             <line x1="12" y1="3" x2="12" y2="15"></line>
           </svg>
           <p style="margin-bottom: 5px; font-weight: 500;">Click to upload JSON</p>
-          <p style="font-size: 12px; color: var(--text-secondary);">Upload the output from `bird bookmarks --json`</p>
+          <p style="font-size: 12px; color: var(--text-secondary);">Using <code>bird bookmarks --json</code></p>
           <input type="file" id="twitter-file-input" accept=".json" style="display: none;">
         </div>
 
