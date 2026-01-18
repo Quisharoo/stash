@@ -1900,7 +1900,11 @@ class StashApp {
 
     } catch (err) {
       console.error('Twitter sync error:', err);
-      status.textContent = `Sync failed: ${err.message || 'Unknown error'}`;
+      let msg = err.message || 'Unknown error';
+      if (msg.includes('CreditsDepleted') || msg.includes('does not have any credits')) {
+        msg = 'Your Twitter API plan has no credits left (Free Tier limits).';
+      }
+      status.textContent = `Sync failed: ${msg}`;
       status.className = 'status-message error';
       if (loginBtn) loginBtn.style.display = 'inline-flex';
     }
