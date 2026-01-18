@@ -247,7 +247,32 @@ class StashApp {
       }
     });
 
-    // Drag and drop
+    // Twitter Sync
+    document.getElementById('twitter-sync-btn').addEventListener('click', () => {
+      this.showTwitterModal();
+    });
+
+    const twitterModal = document.getElementById('twitter-modal');
+    twitterModal.querySelector('.modal-overlay').addEventListener('click', () => {
+      this.hideTwitterModal();
+    });
+    twitterModal.querySelector('.modal-close-btn').addEventListener('click', () => {
+      this.hideTwitterModal();
+    });
+    document.getElementById('twitter-cancel-btn').addEventListener('click', () => {
+      this.hideTwitterModal();
+    });
+    document.getElementById('twitter-save-btn').addEventListener('click', () => {
+      this.syncTwitter();
+    });
+
+    // Load saved twitter token if exists
+    const savedToken = localStorage.getItem('twitter_bearer_token');
+    if (savedToken) {
+      document.getElementById('twitter-token-input').value = savedToken;
+    }
+
+    // Drag and drop copies for kindle
     kindleDropzone.addEventListener('dragover', (e) => {
       e.preventDefault();
       kindleDropzone.classList.add('dragover');
@@ -427,6 +452,8 @@ class StashApp {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
       query = query.gte('created_at', weekAgo.toISOString());
+    } else if (this.currentView === 'twitter') {
+      query = query.eq('source', 'twitter_sync');
     } else {
       query = query.eq('is_archived', false);
     }
@@ -460,7 +487,31 @@ class StashApp {
 
     container.innerHTML = this.saves.map(save => {
       const isHighlight = !!save.highlight;
+      const isTwitter = save.source === 'twitter_sync';
       const date = new Date(save.created_at).toLocaleDateString();
+
+      if (isTwitter) {
+        return `
+          <div class="save-card tweet-card" data-id="${save.id}">
+            <div class="save-card-content">
+              <div class="tweet-header">
+                <img src="${save.author_image_url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png'}" class="tweet-avatar">
+                <div class="tweet-author">
+                  <div class="tweet-name">${this.escapeHtml(save.author || 'User')}</div>
+                  <div class="tweet-handle">@${this.escapeHtml(save.author_handle || 'twitter')}</div>
+                </div>
+                <svg class="tweet-logo" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
+                </svg>
+              </div>
+              <div class="tweet-text">${this.escapeHtml(save.content || '')}</div>
+              <div class="save-card-meta">
+                <span class="save-card-date">${date}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
 
       if (isHighlight) {
         return `
@@ -718,6 +769,7 @@ class StashApp {
       highlights: 'Highlights',
       articles: 'Articles',
       kindle: 'Kindle Highlights',
+      twitter: 'Twitter Bookmarks',
       archived: 'Archived',
       weekly: 'Weekly Review',
       stats: 'Stats',
@@ -1726,6 +1778,71 @@ class StashApp {
       status.className = 'status-message error';
       saveBtn.disabled = false;
       saveBtn.textContent = 'Save to Stash';
+    }
+  }
+
+  showTwitterModal() {
+    document.getElementById('twitter-modal').classList.remove('hidden');
+    document.getElementById('twitter-sync-status').classList.add('hidden');
+  }
+
+  hideTwitterModal() {
+    document.getElementById('twitter-modal').classList.add('hidden');
+  }
+
+  async syncTwitter() {
+    const token = document.getElementById('twitter-token-input').value;
+    const status = document.getElementById('twitter-sync-status');
+    const syncBtn = document.getElementById('twitter-save-btn');
+
+    if (!token) {
+      status.textContent = 'Please enter a Twitter Bearer Token';
+      status.className = 'status-message error';
+      status.classList.remove('hidden');
+      return;
+    }
+
+    // Save token for next time
+    localStorage.setItem('twitter_bearer_token', token);
+
+    syncBtn.disabled = true;
+    syncBtn.textContent = 'Syncing...';
+    status.textContent = 'Contacting Twitter...';
+    status.className = 'status-message';
+    status.classList.remove('hidden');
+
+    try {
+      const { data, error: fnError } = await this.supabase.functions.invoke('sync-twitter', {
+        body: {
+          twitterToken: token,
+          userId: this.user.id,
+          syncType: 'bookmarks'
+        }
+      });
+
+      if (fnError) throw fnError;
+      if (data.error) throw new Error(data.error);
+
+      status.textContent = `Success! Synced ${data.count} items.`;
+      status.className = 'status-message success';
+
+      // Reload data
+      if (this.currentView === 'twitter') {
+        this.loadSaves();
+      }
+
+      setTimeout(() => {
+        this.hideTwitterModal();
+        syncBtn.disabled = false;
+        syncBtn.textContent = 'Start Syncing';
+      }, 2000);
+
+    } catch (err) {
+      console.error('Twitter sync error:', err);
+      status.textContent = `Sync failed: ${err.message || 'Unknown error'}`;
+      status.className = 'status-message error';
+      syncBtn.disabled = false;
+      syncBtn.textContent = 'Start Syncing';
     }
   }
 }

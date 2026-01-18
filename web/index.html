@@ -110,6 +110,14 @@
             </svg>
             Weekly Review
           </a>
+          <a href="#" class="nav-item" data-view="twitter">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z">
+              </path>
+            </svg>
+            Twitter Bookmarks
+          </a>
           <button class="nav-item digest-settings-btn" id="digest-settings-btn">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
@@ -131,8 +139,9 @@
         </div>
 
         <div class="nav-section">
-          <h3>Import</h3>
+          <h3>Integrations</h3>
           <button class="add-folder-btn" id="kindle-import-btn">Import Kindle</button>
+          <button class="add-folder-btn" id="twitter-sync-btn" style="margin-top: 8px;">Sync Twitter</button>
         </div>
 
         <div class="sidebar-footer">
@@ -479,6 +488,40 @@
         <button class="btn primary" id="add-url-save-btn">Save to Stash</button>
       </div>
     </div>
+  </div>
+
+  <!-- Twitter Sync Modal -->
+  <div id="twitter-modal" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Twitter Integration</h2>
+        <button class="btn icon modal-close-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">
+          To sync your bookmarks and likes, enter your Twitter <strong>Bearer Token</strong>.
+          <a href="https://developer.x.com/en/portal/dashboard" target="_blank"
+            style="color: var(--primary); text-decoration: underline;">Get one here</a>.
+        </p>
+        <div class="form-group">
+          <label for="twitter-token-input">Bearer Token</label>
+          <input type="password" id="twitter-token-input" placeholder="AAAAAAAAAAAAAAAAAAAA..."
+            style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text);">
+        </div>
+        <div id="twitter-sync-status" class="status-message hidden" style="margin-top: 12px; font-size: 14px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" id="twitter-cancel-btn">Cancel</button>
+        <button class="btn primary" id="twitter-save-btn">Start Syncing</button>
+      </div>
+    </div>
+  </div>
   </div>
   </div>
 

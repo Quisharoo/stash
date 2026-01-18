@@ -616,6 +616,54 @@ select {
   opacity: 0.3;
 }
 
+/* Tweet Cards */
+.tweet-card {
+  border-left: 4px solid #1da1f2;
+}
+
+.tweet-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.tweet-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+}
+
+.tweet-author {
+  flex: 1;
+}
+
+.tweet-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.tweet-handle {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.tweet-logo {
+  color: #1da1f2;
+  opacity: 0.8;
+}
+
+.tweet-text {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text);
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+}
+
 .save-card-meta {
   display: flex;
   align-items: center;
