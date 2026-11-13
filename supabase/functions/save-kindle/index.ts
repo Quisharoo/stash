@@ -1,9 +1,10 @@
+import { authenticatedUserId, unauthorized } from "../_shared/auth.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -20,11 +21,18 @@ serve(async (req) => {
   }
 
   try {
-    const { user_id, highlights } = await req.json();
+    const userIdFromSession = await authenticatedUserId(
+      req, Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
+    );
+    if (!userIdFromSession) return unauthorized(corsHeaders);
 
-    if (!user_id || !highlights || !Array.isArray(highlights)) {
+    const { highlights } = await req.json();
+
+    const user_id = userIdFromSession;
+
+    if (!highlights || !Array.isArray(highlights)) {
       return new Response(
-        JSON.stringify({ error: "user_id and highlights array required" }),
+        JSON.stringify({ error: "highlights array required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -39,7 +47,8 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: req.headers.get("authorization")! } } }
     );
 
     // Get existing Kindle highlights to check for duplicates

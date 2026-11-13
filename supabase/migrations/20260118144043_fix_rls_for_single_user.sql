@@ -20,6 +20,12 @@ DROP POLICY IF EXISTS "Users can view own preferences" ON user_preferences;
 DROP POLICY IF EXISTS "Users can insert own preferences" ON user_preferences;
 DROP POLICY IF EXISTS "Users can update own preferences" ON user_preferences;
 
+DROP POLICY IF EXISTS "Allow all for anon" ON saves;
+DROP POLICY IF EXISTS "Allow all for anon" ON tags;
+DROP POLICY IF EXISTS "Allow all for anon" ON folders;
+DROP POLICY IF EXISTS "Allow all for anon" ON save_tags;
+DROP POLICY IF EXISTS "Allow all for anon" ON user_preferences;
+
 -- Create wide-open policies for the 'anon' role
 CREATE POLICY "Allow all for anon" ON saves FOR ALL USING (true);
 CREATE POLICY "Allow all for anon" ON tags FOR ALL USING (true);

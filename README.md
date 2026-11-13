@@ -34,13 +34,36 @@ I've already created a `vercel.json` for you. To deploy:
 2. Run `vercel` in the root directory.
 3. Follow the CLI prompts to deploy.
 
-### 🔐 Security & Multi-User
-Once hosted on a public domain (like Vercel), Stash automatically turns on the **Login Screen** for security.
-- **Local Development**: Stash skips the login for convenience when running on `localhost`.
-- **Production**: You will need to sign in using the email/password you created in your Supabase Auth dashboard.
+### 🔐 Authentication and data isolation
 
-### 🛡️ Hardened RLS (Optional)
-If you want to be extremely secure, you can revert the "relaxed" RLS policies and use strict per-user filters once you have logged in.
+Sign in with Supabase Auth in both the web app and Chrome extension, including
+on localhost. Row ownership comes from that session; a configured user ID never
+grants access. The public anonymous key identifies the project and is not a login.
+
+For an existing installation, apply all migrations with `supabase db push` and
+redeploy all Edge Functions with `supabase functions deploy`. The
+`20261113000000_require_authenticated_ownership.sql` migration replaces legacy
+open policies, isolates each user's saves, tags, folders and preferences, and
+keeps integration tokens inaccessible to browser roles. A source merge alone
+does not update a running database or function.
+
+Set your own Supabase URL and public anonymous key with `node configure.js`.
+Never put a service-role key in browser, extension, bookmarklet or shortcut code.
+The tracked config files contain placeholders, not an existing user's project.
+Legacy anonymous bookmarklets, the standalone save form and shortcuts must send
+a valid Supabase user bearer token to the save functions; otherwise they receive
+401. Prefer the authenticated Chrome extension; do not embed long-lived tokens
+in bookmarks or share browser sessions with arbitrary websites.
+
+The scheduled `send-digest` function requires the service-role bearer key from a
+trusted server-side scheduler. It does not accept anonymous or user tokens.
+
+Run the focused security checks with:
+
+```bash
+node --experimental-strip-types --test tests/*.test.mjs
+python3 tests/database-security.py  # requires local PostgreSQL tools
+```
 
 ---
 

@@ -1,3 +1,4 @@
+import { authenticatedUserId, unauthorized } from "../_shared/auth.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { parseHTML } from "https://esm.sh/linkedom@0.16.8";
@@ -5,7 +6,7 @@ import { Readability } from "https://esm.sh/@mozilla/readability@0.5.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -69,11 +70,18 @@ serve(async (req) => {
   }
 
   try {
-    const { url, user_id, highlight, source, prefetched } = await req.json();
+    const userIdFromSession = await authenticatedUserId(
+      req, Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
+    );
+    if (!userIdFromSession) return unauthorized(corsHeaders);
 
-    if (!url || !user_id) {
+    const { url, highlight, source, prefetched } = await req.json();
+
+    const user_id = userIdFromSession;
+
+    if (!url) {
       return new Response(
-        JSON.stringify({ error: "url and user_id required" }),
+        JSON.stringify({ error: "url required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -128,7 +136,8 @@ serve(async (req) => {
     // Save to database
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: req.headers.get("authorization")! } } }
     );
 
     const { data, error } = await supabase

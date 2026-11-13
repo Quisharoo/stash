@@ -129,6 +129,12 @@ serve(async (req) => {
   }
 
   try {
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!serviceKey || req.headers.get("authorization") !== `Bearer ${serviceKey}`) {
+      return Response.json({ error: "Scheduled service authorization required" }, {
+        status: 401, headers: corsHeaders,
+      });
+    }
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
       throw new Error("RESEND_API_KEY not configured");

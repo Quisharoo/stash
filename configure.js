@@ -12,11 +12,10 @@ const question = (query) => new Promise((resolve) => rl.question(query, resolve)
 async function main() {
     console.log('\n🚀 Stash Configuration Wizard\n');
     console.log('This script will help you configure Stash for your environment.');
-    console.log('You will need your Supabase Project URL, Anon Key, and User ID.\n');
+    console.log('You will need your Supabase Project URL and Anon Key.\n');
 
     const supabaseUrl = await question('Enter Supabase URL (e.g., https://xyz.supabase.co): ');
     const supabaseKey = await question('Enter Supabase Anon Key: ');
-    const userId = await question('Enter Supabase User ID (UUID): ');
     const webAppUrl = await question('Enter Web App URL (e.g. http://localhost:3000 or your Vercel URL): ');
 
     // Update Web Config
@@ -31,8 +30,6 @@ const CONFIG = {
   // Your Supabase anon/public key
   SUPABASE_ANON_KEY: '${supabaseKey.trim()}',
 
-  // Your user ID from Supabase
-  USER_ID: '${userId.trim()}',
 };
 `;
 
@@ -54,8 +51,6 @@ const CONFIG = {
   // Your web app URL
   WEB_APP_URL: '${webAppUrl.trim()}',
 
-  // Your user ID from Supabase
-  USER_ID: '${userId.trim()}',
 };
 
 // Don't edit below this line

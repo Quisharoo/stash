@@ -96,7 +96,6 @@ create policy "Allow all for anon" on saves for all using (true);
 create policy "Allow all for anon" on tags for all using (true);
 create policy "Allow all for anon" on folders for all using (true);
 create policy "Allow all for anon" on save_tags for all using (true);
-create policy "Allow all for anon" on user_preferences for all using (true);
 
 -- Function to update updated_at timestamp
 create or replace function update_updated_at()

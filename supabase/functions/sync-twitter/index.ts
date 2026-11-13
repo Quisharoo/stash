@@ -1,3 +1,4 @@
+import { authenticatedUserId, unauthorized } from "../_shared/auth.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -12,9 +13,14 @@ serve(async (req) => {
     }
 
     try {
-        const { twitterToken, userId, syncType = 'bookmarks', sourceType, tweets: importedTweets } = await req.json()
+        const userIdFromSession = await authenticatedUserId(
+          req, Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
+        );
+        if (!userIdFromSession) return unauthorized(corsHeaders);
 
-        if (!userId) throw new Error('User ID is required');
+        const { twitterToken, syncType = 'bookmarks', sourceType, tweets: importedTweets } = await req.json()
+
+        const userId = userIdFromSession;
 
         const supabase = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
