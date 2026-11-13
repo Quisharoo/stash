@@ -1,8 +1,8 @@
-// Stash Web App (Single-user mode - no auth required)
+// Stash Web App
 class StashApp {
   constructor() {
     this.supabase = null;
-    this.user = { id: CONFIG.USER_ID }; // Hardcoded single user
+    this.user = null;
     this.currentView = 'all';
     this.currentSave = null;
     this.saves = [];
@@ -32,11 +32,6 @@ class StashApp {
 
     if (session) {
       this.user = session.user;
-      this.showMainScreen();
-      this.loadData();
-    } else if (CONFIG.USER_ID && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-      // Single-user mode for local development
-      this.user = { id: CONFIG.USER_ID };
       this.showMainScreen();
       this.loadData();
     } else {

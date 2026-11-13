@@ -1,3 +1,4 @@
+import { authenticatedUserId, unauthorized } from "../_shared/auth.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { DOMParser } from "https://deno.land/x/deno_dom/deno-dom-wasm.ts";
 import { Readability } from "https://esm.sh/@mozilla/readability@0.4.4";
@@ -14,6 +15,11 @@ serve(async (req) => {
     }
 
     try {
+        const userIdFromSession = await authenticatedUserId(
+          req, Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
+        );
+        if (!userIdFromSession) return unauthorized(corsHeaders);
+
         const { url } = await req.json()
 
         if (!url) {

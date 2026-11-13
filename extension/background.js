@@ -51,8 +51,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 // Save highlighted text
 async function saveHighlight(tab, selectionText) {
   try {
+    const user = await supabase.getUser();
+    if (!user) throw new Error('Sign in to Stash first');
     await supabase.insert('saves', {
-      user_id: CONFIG.USER_ID,
+      user_id: user.id,
       url: tab.url,
       title: tab.title,
       highlight: selectionText,
@@ -77,7 +79,9 @@ async function saveHighlight(tab, selectionText) {
 // Save full page
 async function savePage(tab) {
   try {
-    console.log('savePage called for:', tab.url);
+    if (!supabase) await initSupabase();
+    const user = await supabase.getUser();
+    if (!user) throw new Error('Sign in to Stash first');
     let article;
 
     // Extract from current page - inject content script first if needed
@@ -105,7 +109,7 @@ async function savePage(tab) {
 
     console.log('Inserting into Supabase...');
     const result = await supabase.insert('saves', {
-      user_id: CONFIG.USER_ID,
+      user_id: user.id,
       url: tab.url,
       title: article.title,
       content: article.content,
