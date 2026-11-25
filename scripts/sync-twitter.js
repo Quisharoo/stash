@@ -67,6 +67,21 @@ const requestHandler = (req, res) => {
 
 const server = http.createServer(requestHandler);
 
+server.on('error', (e) => {
+    if (e.code === 'EADDRINUSE') {
+        console.log(`\n⚠️  Port ${PORT} is in use (Bridge already running).`);
+        console.log('🔄 Proceeding with one-off sync only...\n');
+        doSync()
+            .then(() => process.exit(0))
+            .catch((err) => {
+                console.error('\n❌ Sync failed:', err.message);
+                process.exit(1);
+            });
+    } else {
+        console.error('Server error:', e);
+    }
+});
+
 server.listen(PORT, async (err) => {
     if (err) {
         return console.log('something bad happened', err);
@@ -88,66 +103,75 @@ async function doSync() {
     console.log('🐦 Fetching bookmarks from Twitter for user ' + USER_ID);
 
     // 1. Run bird to get bookmarks as JSON
-    // We use --max-pages 5 by default
-    const output = execSync('npx -y @steipete/bird bookmarks --json --max-pages 5', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-
-    let tweets;
+    // We remove --max-pages as it is not supported
     try {
-        tweets = JSON.parse(output);
-    } catch (e) {
-        throw new Error('Failed to parse bird output. Ensure you are logged into Twitter in your default browser.');
-    }
+        const output = execSync('npx -y @steipete/bird bookmarks --json', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); // capture stderr
 
-    if (!Array.isArray(tweets) || tweets.length === 0) {
-        console.log('No bookmarks found.');
-        return 0;
-    }
+        let tweets;
+        try {
+            tweets = JSON.parse(output);
+        } catch (e) {
+            // output might contain non-json text if npx logs info
+            throw new Error('Failed to parse bird output. Please check your login.');
+        }
 
-    console.log(`📦 Found ${tweets.length} bookmarks. Sending to Cloud...`);
+        if (!Array.isArray(tweets) || tweets.length === 0) {
+            console.log('No bookmarks found.');
+            return 0;
+        }
 
-    // 2. Send to Supabase Edge Function
-    const payload = JSON.stringify({
-        userId: USER_ID,
-        sourceType: 'import_json',
-        tweets: tweets
-    });
+        console.log(`📦 Found ${tweets.length} bookmarks. Sending to Cloud...`);
 
-    return new Promise((resolve, reject) => {
-        const url = new URL(FUNCTION_URL);
-        const options = {
-            hostname: url.hostname,
-            path: url.pathname,
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                'Content-Length': Buffer.byteLength(payload)
-            }
-        };
+        // 2. Send to Supabase Edge Function
+        const payload = JSON.stringify({
+            userId: USER_ID,
+            sourceType: 'import_json',
+            tweets: tweets
+        });
 
-        const remoteReq = https.request(options, (remoteRes) => {
-            let data = '';
-            remoteRes.on('data', (chunk) => data += chunk);
-            remoteRes.on('end', () => {
-                try {
-                    const result = JSON.parse(data);
-                    if (result.error) {
-                        reject(new Error(result.error));
-                    } else {
-                        console.log(`✅ Success! Synced ${result.count} items.\n`);
-                        resolve(result.count);
-                    }
-                } catch (e) {
-                    reject(new Error('Invalid response from server'));
+        return new Promise((resolve, reject) => {
+            const url = new URL(FUNCTION_URL);
+            const options = {
+                hostname: url.hostname,
+                path: url.pathname,
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Length': Buffer.byteLength(payload)
                 }
+            };
+
+            const remoteReq = https.request(options, (remoteRes) => {
+                let data = '';
+                remoteRes.on('data', (chunk) => data += chunk);
+                remoteRes.on('end', () => {
+                    try {
+                        const result = JSON.parse(data);
+                        if (result.error) {
+                            reject(new Error(result.error));
+                        } else {
+                            console.log(`✅ Success! Synced ${result.count} items.\n`);
+                            resolve(result.count);
+                        }
+                    } catch (e) {
+                        reject(new Error('Invalid response from server' + data));
+                    }
+                });
             });
+
+            remoteReq.on('error', (e) => {
+                reject(e);
+            });
+
+            remoteReq.write(payload);
+            remoteReq.end();
         });
 
-        remoteReq.on('error', (e) => {
-            reject(e);
-        });
-
-        remoteReq.write(payload);
-        remoteReq.end();
-    });
+    } catch (err) {
+        // execSync throws if command fails
+        // err.stderr contains the error output
+        const errorMessage = err.stderr ? err.stderr.toString() : err.message;
+        throw new Error('Bird command failed: ' + errorMessage);
+    }
 }
